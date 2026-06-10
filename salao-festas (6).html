@@ -30,6 +30,7 @@ input, select, textarea { font-family: inherit; }
 @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
 .alert-info { background: #F5EFEB; border-radius: 6px; padding: 12px 14px; font-size: 13px; color: #7A5C4F; margin-bottom: 20px; border: 1px solid #C8B8B8; }
 .alert-error { background: #FEE2E2; border-radius: 6px; padding: 12px 14px; font-size: 13px; color: #991B1B; margin-bottom: 20px; border: 1px solid #FCA5A5; }
+.alert-success { background: #F5EFEB; border-radius: 6px; padding: 14px 18px; margin-bottom: 20px; color: #3E0F00; font-weight: 500; border: 1.5px solid #955B1F; }
 .cal-wrap { background: #F5EFEB; border-radius: 6px; border: 1px solid #C8B8B8; overflow: hidden; }
 .cal-header { background: #3E0F00; padding: 20px 28px; display: flex; align-items: center; justify-content: space-between; }
 .cal-header h2 { color: #DAC6C6; font-size: 19px; font-weight: 500; letter-spacing: .5px; }
@@ -121,10 +122,10 @@ input, select, textarea { font-family: inherit; }
 .login-title { font-size: 20px; font-weight: 700; color: #3E0F00; margin-bottom: 6px; }
 .login-sub { color: #9B7B6F; font-size: 14px; margin-bottom: 28px; }
 .wa-confirm-msg { background:#fff; border:1px solid #C8B8B8; border-radius:6px; padding:16px; margin-bottom:20px; font-size:13px; color:#3E0F00; white-space:pre-wrap; line-height:1.8; }
-.wa-box { background: #EDE3DE; border: 1px solid #C8B8B8; border-radius: 6px; padding: 20px; margin-top: 16px; }
-.wa-box h3 { color: #3E0F00; font-size: 14px; margin-bottom: 10px; font-weight: 600; }
-.wa-text { background: #fff; border-radius: 4px; padding: 12px; font-size: 13px; color: #3E0F00; white-space: pre-wrap; border: 1px solid #C8B8B8; margin-bottom: 12px; line-height: 1.6; }
-.wa-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+.success-box { text-align:center; padding: 32px 20px; }
+.success-icon { font-size: 48px; margin-bottom: 16px; color: #3E0F00; }
+.success-title { font-size: 20px; font-weight: 700; color: #3E0F00; margin-bottom: 8px; }
+.success-msg { font-size: 14px; color: #7A5C4F; line-height: 1.7; }
 @media (max-width: 700px) {
   .admin-stats { grid-template-columns: repeat(2,1fr); }
   .admin-content { flex-direction: column; }
@@ -153,7 +154,7 @@ input, select, textarea { font-family: inherit; }
 </div>
 <script>
 
-var BIN_ID = "6a297c6af5f4af5e29d8cd5a";
+var BIN_ID  = "6a297c6af5f4af5e29d8cd5a";
 var API_KEY = "$2a$10$vJeEQcrydtu9p5nXWxLwZeuho7633A2Qchf9Fzi9jRFv9tWbS4yDG";
 var API_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
 var AK = "avira_admin";
@@ -175,7 +176,7 @@ function dim(y,m){return new Date(y,m+1,0).getDate();}
 function fdm(y,m){return new Date(y,m,1).getDay();}
 function ei(t){return EI[t]||"&#127881;";}
 function bc(s){return "badge badge-"+s;}
-function bl(s){return {pending:"Pendente",approved:"Aprovado",rejected:"Recusado"}[s]||s;}
+function bl(s){return {pending:"Aguardando",approved:"Aprovado",rejected:"Recusado"}[s]||s;}
 function sbg(s){return {pending:"#955B1F",approved:"#3E0F00",rejected:"#C8B8B8"}[s]||"#ccc";}
 function stx(s){return {pending:"#F5EFEB",approved:"#DAC6C6",rejected:"#3E0F00"}[s]||"#000";}
 function mkd(y,m,d){return y+"-"+pad(m+1)+"-"+pad(d);}
@@ -188,19 +189,19 @@ function showLoading(elId){
 }
 
 function loadBins(cb){
-  fetch(API_URL+"/latest",{headers:{"X-Master-Key":API_KEY}})
+  fetch(API_URL+"/latest",{headers:{"X-Master-Key":API_KEY,"X-Bin-Meta":false}})
     .then(function(r){return r.json();})
     .then(function(d){
-      var arr = Array.isArray(d.record) ? d.record : [];
-      arr = arr.filter(function(b){return b && b.id;});
-      _cache = arr;
-      cb(null, arr);
+      var arr=Array.isArray(d.record)?d.record:(Array.isArray(d)?d:[]);
+      arr=arr.filter(function(b){return b&&b.id;});
+      _cache=arr;
+      cb(null,arr);
     })
-    .catch(function(e){cb(e, []);});
+    .catch(function(e){cb(e,[]);});
 }
 
-function saveBins(arr, cb){
-  _cache = arr;
+function saveBins(arr,cb){
+  _cache=arr;
   fetch(API_URL,{
     method:"PUT",
     headers:{"Content-Type":"application/json","X-Master-Key":API_KEY},
@@ -226,6 +227,7 @@ function buildConfirmMsg(b){
     +"Nos vemos em breve,\nNathalia | \u00c1vira Inc.";
 }
 
+// ── VIEW ──
 var cv="public";
 function showView(v){
   cv=v;
@@ -233,9 +235,11 @@ function showView(v){
   g("view-admin").style.display=v==="admin"?"":"none";
   g("btn-public").className="nav-btn"+(v==="public"?" active":"");
   g("btn-admin").className="nav-btn"+(v==="admin"?" active":"");
-  if(v==="public"){initPublicView();}else{if(!aa()){renderLogin();}else{initAdminView();}}
+  if(v==="public"){initPublicView();}
+  else{if(!aa()){renderLogin();}else{initAdminView();}}
 }
 
+// ── PUBLIC ──
 var py,pm;
 function initPublicView(){
   var t=new Date(); py=t.getFullYear(); pm=t.getMonth();
@@ -261,14 +265,14 @@ function renderPublic(bks){
    +"<div class=\"cal-legend\">"
    +"<div class=\"legend-item\"><div class=\"legend-dot\" style=\"background:#3E0F00\"></div>Ocupado</div>"
    +"<div class=\"legend-item\"><div class=\"legend-dot\" style=\"background:#955B1F\"></div>Aguardando aprova\u00e7\u00e3o</div>"
-   +"<div class=\"legend-item\"><div class=\"legend-dot\" style=\"background:#fff;border:1px solid #C8B8B8\"></div>Dispon\u00edvel</div>"
+   +"<div class=\"legend-item\"><div class=\"legend-dot\" style=\"background:#fff;border:1px solid #C8B8B8\"></div>Dispon\u00edvel \u2014 clique para solicitar</div>"
    +"</div>"
    +"<div class=\"cal-days-header\">"+dnh+"</div>"
    +"<div class=\"cal-grid\">"+gh+"</div>"
    +"</div>"
    +"<div style=\"margin-top:20px;background:#F5EFEB;border-radius:6px;padding:20px 24px;border:1px solid #C8B8B8;font-size:13px;color:#7A5C4F;line-height:1.8\">"
-   +"<strong style=\"color:#3E0F00;display:block;margin-bottom:4px\">Informa\u00e7\u00f5es</strong>"
-   +"Para solicitar o agendamento do sal\u00e3o, entre em contato com a administra\u00e7\u00e3o da \u00c1vira Inc."
+   +"<strong style=\"color:#3E0F00;display:block;margin-bottom:4px\">Como funciona</strong>"
+   +"Clique em uma data dispon\u00edvel e preencha o formul\u00e1rio de solicita\u00e7\u00e3o. Sua solicita\u00e7\u00e3o ser\u00e1 analisada e nossa equipe entrar\u00e1 em contato em breve."
    +"</div>";
   g("view-public").innerHTML=h;
 }
@@ -286,7 +290,8 @@ function pgrid(aset,pset,td){
     else cls+=" available";
     if(tot) cls+=" today";
     var dot=(appr||pend)?"<div class=\"cal-dot\"></div>":"";
-    h+="<div class=\""+cls+"\">"+d+dot+"</div>";
+    var oc=(!past&&!appr&&!pend)?" onclick=\"openPublicForm(\x27"+dstr+"\x27)\"":" ";
+    h+="<div class=\""+cls+"\""+oc+">"+d+dot+"</div>";
   }
   return h;
 }
@@ -294,6 +299,93 @@ function pgrid(aset,pset,td){
 function pubPrev(){if(pm===0){pm=11;py--;}else pm--;showLoading("view-public");loadBins(function(e,bks){renderPublic(bks);});}
 function pubNext(){if(pm===11){pm=0;py++;}else pm++;showLoading("view-public");loadBins(function(e,bks){renderPublic(bks);});}
 
+function openPublicForm(dateStr){
+  var oh=ET.map(function(t){return "<option>"+t+"</option>";}).join("");
+  var h="<div class=\"modal-header\">"
+   +"<div><div class=\"modal-title\">Solicitar Agendamento</div><div class=\"modal-subtitle\">"+fd(dateStr)+"</div></div>"
+   +"<button class=\"modal-close\" onclick=\"closeModal()\">&#215;</button>"
+   +"</div>"
+   +"<div class=\"modal-body\">"
+   +"<div class=\"form-group\"><label class=\"form-label\">Seu nome completo *</label><input class=\"form-input\" id=\"pn\" type=\"text\"><div class=\"form-error\" id=\"pen\"></div></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Telefone / WhatsApp *</label><input class=\"form-input\" id=\"pp\" type=\"tel\" placeholder=\"(XX) XXXXX-XXXX\"><div class=\"form-error\" id=\"pep\"></div></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Tipo de evento *</label><select class=\"form-select\" id=\"pt\">"+oh+"</select></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Descri\u00e7\u00e3o do evento *</label><input class=\"form-input\" id=\"pev\" type=\"text\" placeholder=\"Ex: Anivers\u00e1rio 50 anos da Maria\"><div class=\"form-error\" id=\"peev\"></div></div>"
+   +"<div class=\"form-row-3\">"
+   +"<div class=\"form-group\"><label class=\"form-label\">Convidados *</label><input class=\"form-input\" id=\"pg\" type=\"number\" min=\"1\" placeholder=\"50\"><div class=\"form-error\" id=\"peg\"></div></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">In\u00edcio</label><input class=\"form-input\" id=\"pst\" type=\"time\" value=\"18:00\"></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">T\u00e9rmino</label><input class=\"form-input\" id=\"pen2\" type=\"time\" value=\"23:00\"></div>"
+   +"</div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Observa\u00e7\u00f5es</label><textarea class=\"form-textarea\" id=\"pno\" rows=\"2\" placeholder=\"Necessidades especiais, decora\u00e7\u00e3o, etc.\"></textarea></div>"
+   +"<div class=\"alert-info\" style=\"font-size:12px\">Ap\u00f3s o envio, sua solicita\u00e7\u00e3o ficar\u00e1 em an\u00e1lise e nossa equipe entrar\u00e1 em contato pelo WhatsApp informado.</div>"
+   +"<div id=\"pform-error\"></div>"
+   +"<div class=\"btn-row\">"
+   +"<button class=\"btn btn-secondary\" onclick=\"closeModal()\">Cancelar</button>"
+   +"<button class=\"btn btn-primary\" style=\"flex:2\" id=\"psend-btn\" onclick=\"submitPublicForm(\x27"+dateStr+"\x27)\">Enviar solicita\u00e7\u00e3o</button>"
+   +"</div></div>";
+  g("modal-inner").innerHTML=h;
+  g("modal").style.display="flex";
+}
+
+function submitPublicForm(dateStr){
+  var name=g("pn").value.trim(),phone=g("pp").value.trim();
+  var evname=g("pev").value.trim(),guests=g("pg").value.trim();
+  var evtype=g("pt").value,start=g("pst").value,end=g("pen2").value,notes=g("pno").value.trim();
+  var ok=true;
+  function se(id,m){g(id).textContent=m;ok=false;}
+  function ce(id){g(id).textContent="";}
+  ce("pen");ce("pep");ce("peev");ce("peg");
+  if(!name) se("pen","Informe seu nome");
+  if(!phone) se("pep","Informe o telefone");
+  if(!evname) se("peev","Informe o evento");
+  if(!guests||isNaN(guests)||+guests<1) se("peg","N\u00famero inv\u00e1lido");
+  if(!ok) return;
+  var btn=g("psend-btn");
+  if(btn){btn.textContent="Enviando...";btn.disabled=true;}
+  var booking={
+    id:Date.now().toString(),
+    date:dateStr,
+    name:name,
+    phone:phone,
+    email:"",
+    eventType:evtype,
+    eventName:evname,
+    guestCount:guests,
+    startTime:start,
+    endTime:end,
+    notes:notes,
+    status:"pending",
+    createdAt:new Date().toISOString()
+  };
+  loadBins(function(err,bks){
+    bks.push(booking);
+    saveBins(bks,function(err2){
+      if(err2){
+        var e=g("pform-error");
+        if(e) e.innerHTML="<div class=\"alert-error\">Erro ao enviar. Tente novamente.</div>";
+        if(btn){btn.textContent="Enviar solicita\u00e7\u00e3o";btn.disabled=false;}
+        return;
+      }
+      // Show success screen
+      g("modal-inner").innerHTML="<div class=\"modal-header\">"
+       +"<div><div class=\"modal-title\">Solicita\u00e7\u00e3o enviada</div></div>"
+       +"<button class=\"modal-close\" onclick=\"closeModal();initPublicView()\">&#215;</button>"
+       +"</div>"
+       +"<div class=\"modal-body\">"
+       +"<div class=\"success-box\">"
+       +"<div class=\"success-icon\">&#10003;</div>"
+       +"<div class=\"success-title\">Solicita\u00e7\u00e3o recebida!</div>"
+       +"<div class=\"success-msg\">"
+       +"Sua solicita\u00e7\u00e3o para o dia <strong>"+fd(dateStr)+"</strong> est\u00e1 em an\u00e1lise.<br><br>"
+       +"Em breve nossa equipe entrar\u00e1 em contato pelo n\u00famero <strong>"+esc(phone)+"</strong> para confirmar o agendamento."
+       +"</div>"
+       +"</div>"
+       +"<button class=\"btn btn-dark btn-full\" style=\"margin-top:8px\" onclick=\"closeModal();initPublicView()\">Fechar</button>"
+       +"</div>";
+    });
+  });
+}
+
+// ── ADMIN ──
 var af="all",asel=null,atab="list",ay,am;
 
 function initAdminView(){
@@ -310,7 +402,7 @@ function renderAdmin(bks){
     pending:bks.filter(function(b){return b.status==="pending";}).length,
     approved:bks.filter(function(b){return b.status==="approved";}).length,
     rejected:bks.filter(function(b){return b.status==="rejected";}).length};
-  var sh=[["Total",cnt.all,"#3E0F00"],["Pendentes",cnt.pending,"#955B1F"],["Aprovados",cnt.approved,"#3E0F00"],["Recusados",cnt.rejected,"#C8B8B8"]]
+  var sh=[["Total",cnt.all,"#3E0F00"],["Aguardando",cnt.pending,"#955B1F"],["Aprovados",cnt.approved,"#3E0F00"],["Recusados",cnt.rejected,"#C8B8B8"]]
    .map(function(s){return "<div class=\"admin-stat\" style=\"border-left:3px solid "+s[2]+"\">"
      +"<div style=\"font-size:28px;font-weight:700;color:#3E0F00\">"+s[1]+"</div>"
      +"<div style=\"font-size:12px;color:#9B7B6F;margin-top:4px;text-transform:uppercase;letter-spacing:.4px\">"+s[0]+"</div>"
@@ -319,7 +411,7 @@ function renderAdmin(bks){
    +"<div><h1 style=\"font-size:22px;font-weight:700;color:#3E0F00;letter-spacing:.3px\">Painel de Agendamentos</h1>"
    +"<p style=\"color:#9B7B6F;font-size:13px;margin-top:4px\">Sal\u00e3o de Festas \u00b7 \u00c1vira inc.</p></div>"
    +"<div style=\"display:flex;gap:8px;flex-wrap:wrap\">"
-   +"<button class=\"btn btn-primary\" onclick=\"openNewBooking()\" style=\"font-size:12px;padding:8px 14px\">+ Nova solicita\u00e7\u00e3o</button>"
+   +"<button class=\"btn btn-primary\" onclick=\"openNewBooking()\" style=\"font-size:12px;padding:8px 14px\">+ Nova</button>"
    +"<button class=\"btn btn-secondary\" onclick=\"refreshAdmin()\" style=\"font-size:12px;padding:8px 14px\">Atualizar</button>"
    +"<button class=\"btn btn-ghost\" onclick=\"adminLogout()\" style=\"font-size:12px;padding:8px 14px\">Sair</button>"
    +"</div></div>"
@@ -349,7 +441,7 @@ function ral(el,bks){
     return "<button class=\"filter-btn"+(af===f?" active":"")+"\" onclick=\"sf(\x27"+f+"\x27)\">"+lbl+"</button>";
   }).join("");
   var lh=flt.length===0
-   ?"<div class=\"empty-state\"><p style=\"margin-bottom:8px\">\u2014</p><p>Nenhuma solicita\u00e7\u00e3o.<br><small style=\"color:#B9A8A0\">Use \"+ Nova solicita\u00e7\u00e3o\" para cadastrar.</small></p></div>"
+   ?"<div class=\"empty-state\"><p>\u2014</p><p style=\"margin-top:8px\">Nenhuma solicita\u00e7\u00e3o.</p></div>"
    :flt.map(function(b){
      var sel=asel&&asel.id===b.id?" selected":"";
      return "<div class=\"booking-card"+sel+"\" onclick=\"selB(\x27"+b.id+"\x27)\">"
@@ -375,7 +467,7 @@ function bdp(b){
   }else{
     ab="<button class=\"btn btn-success btn-full\" style=\"margin-top:16px\" onclick=\"doStatus(\x27"+b.id+"\x27,\x27approved\x27)\">Aprovar</button>";
   }
-  var rows=[["Data",fd(b.date)],["Hor\u00e1rio",b.startTime+" \u2013 "+b.endTime],["Convidados",b.guestCount],["Solicitante",b.name],["Telefone",b.phone],["E-mail",b.email||"\u2014"],["Obs.",b.notes||"\u2014"]]
+  var rows=[["Data",fd(b.date)],["Hor\u00e1rio",b.startTime+" \u2013 "+b.endTime],["Convidados",b.guestCount],["Solicitante",b.name],["Telefone",b.phone],["Tipo",b.eventType],["Obs.",b.notes||"\u2014"]]
    .map(function(r){return "<div class=\"detail-row\"><span class=\"detail-key\">"+r[0]+"</span><span class=\"detail-val\">"+esc(r[1])+"</span></div>";}).join("");
   return "<div class=\"detail-panel\">"
    +"<div class=\"modal-header\" style=\"border-radius:6px 6px 0 0\">"
@@ -384,10 +476,9 @@ function bdp(b){
    +"<div style=\"padding:24px\">"
    +"<div class=\"detail-center\"><div class=\"detail-icon\">"+ei(b.eventType)+"</div>"
    +"<div class=\"detail-title\">"+esc(b.eventName)+"</div>"
-   +"<div class=\"detail-type\">"+esc(b.eventType)+"</div>"
-   +"<span class=\""+bc(b.status)+"\" style=\"margin-top:8px\">"+bl(b.status)+"</span></div>"
+   +"<span class=\""+bc(b.status)+"\" style=\"margin-top:8px;display:inline-block\">"+bl(b.status)+"</span></div>"
    +rows+ab
-   +"<button class=\"btn btn-danger btn-full\" style=\"margin-top:10px;font-size:13px\" onclick=\"delB(\x27"+b.id+"\x27)\">Excluir evento</button>"
+   +"<button class=\"btn btn-danger btn-full\" style=\"margin-top:10px;font-size:13px\" onclick=\"delB(\x27"+b.id+"\x27)\">Excluir</button>"
    +"</div></div>";
 }
 
@@ -399,7 +490,7 @@ function doStatus(id,status){
       var b=bks.find(function(x){return x.id===id;});
       if(b) waConfirmModal(b);
       else renderAdmin(bks);
-    } else { renderAdmin(bks); }
+    }else{renderAdmin(bks);}
   });
 }
 
@@ -463,39 +554,35 @@ function csel(id){var b=(_cache||[]).find(function(x){return x.id===id;});if(!b)
 function selB(id){var b=(_cache||[]).find(function(x){return x.id===id;});asel=(asel&&asel.id===id)?null:b;ral(g("atc"),_cache||[]);}
 function desel(){asel=null;ral(g("atc"),_cache||[]);}
 function sf(f){af=f;asel=null;ral(g("atc"),_cache||[]);}
-
-function delB(id){
-  var bks=(_cache||[]).filter(function(b){return b.id!==id;});
-  saveBins(bks,function(){asel=null;renderAdmin(bks);});
-}
+function delB(id){var bks=(_cache||[]).filter(function(b){return b.id!==id;});saveBins(bks,function(){asel=null;renderAdmin(bks);});}
 
 function openNewBooking(){
   var oh=ET.map(function(t){return "<option>"+t+"</option>";}).join("");
   var h="<div class=\"modal-header\">"
-   +"<div><div class=\"modal-title\">Nova Solicita\u00e7\u00e3o</div><div class=\"modal-subtitle\">Cadastrar agendamento</div></div>"
+   +"<div><div class=\"modal-title\">Novo Agendamento</div></div>"
    +"<button class=\"modal-close\" onclick=\"closeModal()\">&#215;</button>"
    +"</div>"
    +"<div class=\"modal-body\">"
    +"<div class=\"form-group\"><label class=\"form-label\">Data *</label><input class=\"form-input\" id=\"ndate\" type=\"date\" value=\""+ts()+"\"><div class=\"form-error\" id=\"ne-date\"></div></div>"
-   +"<div class=\"form-group\"><label class=\"form-label\">Nome completo *</label><input class=\"form-input\" id=\"nname\" type=\"text\"><div class=\"form-error\" id=\"ne-name\"></div></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Nome *</label><input class=\"form-input\" id=\"nname\" type=\"text\"><div class=\"form-error\" id=\"ne-name\"></div></div>"
    +"<div class=\"form-row-2\">"
    +"<div class=\"form-group\"><label class=\"form-label\">Telefone *</label><input class=\"form-input\" id=\"nphone\" type=\"tel\"><div class=\"form-error\" id=\"ne-phone\"></div></div>"
    +"<div class=\"form-group\"><label class=\"form-label\">E-mail</label><input class=\"form-input\" id=\"nemail\" type=\"email\"></div>"
    +"</div>"
-   +"<div class=\"form-group\"><label class=\"form-label\">Tipo de evento</label><select class=\"form-select\" id=\"ntype\">"+oh+"</select></div>"
-   +"<div class=\"form-group\"><label class=\"form-label\">Nome do evento *</label><input class=\"form-input\" id=\"nevname\" type=\"text\"><div class=\"form-error\" id=\"ne-evname\"></div></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Tipo</label><select class=\"form-select\" id=\"ntype\">"+oh+"</select></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Evento *</label><input class=\"form-input\" id=\"nevname\" type=\"text\"><div class=\"form-error\" id=\"ne-evname\"></div></div>"
    +"<div class=\"form-row-3\">"
    +"<div class=\"form-group\"><label class=\"form-label\">Convidados</label><input class=\"form-input\" id=\"nguests\" type=\"number\" min=\"1\" value=\"50\"></div>"
    +"<div class=\"form-group\"><label class=\"form-label\">In\u00edcio</label><input class=\"form-input\" id=\"nstart\" type=\"time\" value=\"18:00\"></div>"
    +"<div class=\"form-group\"><label class=\"form-label\">T\u00e9rmino</label><input class=\"form-input\" id=\"nend\" type=\"time\" value=\"23:00\"></div>"
    +"</div>"
-   +"<div class=\"form-group\"><label class=\"form-label\">Observa\u00e7\u00f5es</label><textarea class=\"form-textarea\" id=\"nnotes\" rows=\"2\"></textarea></div>"
+   +"<div class=\"form-group\"><label class=\"form-label\">Obs.</label><textarea class=\"form-textarea\" id=\"nnotes\" rows=\"2\"></textarea></div>"
    +"<div class=\"form-group\"><label class=\"form-label\">Status</label>"
-   +"<select class=\"form-select\" id=\"nstatus\"><option value=\"approved\">Aprovado</option><option value=\"pending\">Pendente</option></select></div>"
+   +"<select class=\"form-select\" id=\"nstatus\"><option value=\"approved\">Aprovado</option><option value=\"pending\">Aguardando</option></select></div>"
    +"<div id=\"nsave-error\"></div>"
    +"<div class=\"btn-row\">"
    +"<button class=\"btn btn-secondary\" onclick=\"closeModal()\">Cancelar</button>"
-   +"<button class=\"btn btn-primary\" style=\"flex:2\" id=\"nsave-btn\" onclick=\"saveNewBooking()\">Salvar agendamento</button>"
+   +"<button class=\"btn btn-primary\" style=\"flex:2\" id=\"nsave-btn\" onclick=\"saveNewBooking()\">Salvar</button>"
    +"</div></div>";
   g("modal-inner").innerHTML=h;
   g("modal").style.display="flex";
@@ -510,7 +597,7 @@ function saveNewBooking(){
   if(!date)se("ne-date","Informe a data");
   if(!name)se("ne-name","Informe o nome");
   if(!phone)se("ne-phone","Informe o telefone");
-  if(!evname)se("ne-evname","Informe o nome do evento");
+  if(!evname)se("ne-evname","Informe o evento");
   if(!ok)return;
   var btn=g("nsave-btn");
   if(btn){btn.textContent="Salvando...";btn.disabled=true;}
@@ -520,13 +607,11 @@ function saveNewBooking(){
     guestCount:g("nguests").value||"?",startTime:g("nstart").value,
     endTime:g("nend").value,notes:g("nnotes").value.trim(),
     status:status,createdAt:new Date().toISOString()};
-  var bks=(_cache||[]).slice();
-  bks.push(booking);
+  var bks=(_cache||[]).slice();bks.push(booking);
   saveBins(bks,function(err){
     if(err){
-      var e=g("nsave-error");
-      if(e)e.innerHTML="<div class=\"alert-error\">Erro ao salvar. Verifique a conex\u00e3o.</div>";
-      if(btn){btn.textContent="Salvar agendamento";btn.disabled=false;}
+      var e=g("nsave-error");if(e)e.innerHTML="<div class=\"alert-error\">Erro ao salvar.</div>";
+      if(btn){btn.textContent="Salvar";btn.disabled=false;}
       return;
     }
     closeModal();
@@ -550,7 +635,7 @@ function adminLogout(){sa(false);renderLogin();}
 function closeModal(){g("modal").style.display="none";}
 function closeModalOutside(e){if(e.target.id==="modal")closeModal();}
 
-// INIT — always start logged out
+// INIT
 sa(false);
 showLoading("view-public");
 loadBins(function(err,bks){renderPublic(bks);});
