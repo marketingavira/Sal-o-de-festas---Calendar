@@ -222,8 +222,13 @@ function buildConfirmMsg(b){
     +"Hor\u00e1rio: "+b.startTime+" \u00e0s "+b.endTime+"\n"
     +"Tipo: "+b.eventType+"\n"
     +"N\u00ba de convidados: "+b.guestCount+"\n\n"
+    +"-- Pagamento --\n"
+    +"Valor do uso do sal\u00e3o: R$ 500,00\n"
+    +"Segue chave Pix para o pagamento da reserva:\n"
+    +"(49) 99105-1107 \u2013 em nome de Priscila\n"
+    +"*Favor enviar o comprovante.*\n\n"
     +"Por gentileza, verifique os dados acima e me avise caso haja qualquer informa\u00e7\u00e3o incorreta.\n\n"
-    +"Fico \u00e0 disposi\u00e7\u00e3o para d\u00favidas ou informa\u00e7\u00f5es sobre nosso espa\u00e7o.\n\n"
+    +"Fico \u00e0 disposi\u00e7\u00e3o para d\u00favidas ou informa\u00e7\u00f5es sobre nosso espa\u00e7o pelo WhatsApp (49) 98870-0194.\n\n"
     +"Nos vemos em breve,\nNathalia | \u00c1vira Inc.";
 }
 
@@ -264,15 +269,16 @@ function renderPublic(bks){
    +"</div>"
    +"<div class=\"cal-legend\">"
    +"<div class=\"legend-item\"><div class=\"legend-dot\" style=\"background:#3E0F00\"></div>Ocupado</div>"
-   +"<div class=\"legend-item\"><div class=\"legend-dot\" style=\"background:#955B1F\"></div>Aguardando aprova\u00e7\u00e3o</div>"
    +"<div class=\"legend-item\"><div class=\"legend-dot\" style=\"background:#fff;border:1px solid #C8B8B8\"></div>Dispon\u00edvel \u2014 clique para solicitar</div>"
    +"</div>"
    +"<div class=\"cal-days-header\">"+dnh+"</div>"
    +"<div class=\"cal-grid\">"+gh+"</div>"
    +"</div>"
    +"<div style=\"margin-top:20px;background:#F5EFEB;border-radius:6px;padding:20px 24px;border:1px solid #C8B8B8;font-size:13px;color:#7A5C4F;line-height:1.8\">"
-   +"<strong style=\"color:#3E0F00;display:block;margin-bottom:4px\">Como funciona</strong>"
+   +"<strong style=\"color:#3E0F00;display:block;margin-bottom:8px;font-size:18px;font-weight:700\">Como funciona</strong>"
    +"Clique em uma data dispon\u00edvel e preencha o formul\u00e1rio de solicita\u00e7\u00e3o. Sua solicita\u00e7\u00e3o ser\u00e1 analisada e nossa equipe entrar\u00e1 em contato em breve."
+   +"<div style=\"margin-top:10px;color:#3E0F00\">Valor do uso do sal\u00e3o: <strong>R$ 500,00</strong></div>"
+   +"<a href=\"https://wa.me/5549988700194?text="+encodeURIComponent("Ol\u00e1, Nathalia! Gostaria de mais informa\u00e7\u00f5es sobre o sal\u00e3o de festas.")+"\" target=\"_blank\" rel=\"noopener\" class=\"btn btn-primary\" style=\"display:inline-block;margin-top:14px;text-decoration:none\">&#128172; Falar no WhatsApp</a>"
    +"</div>";
   g("view-public").innerHTML=h;
 }
@@ -286,7 +292,7 @@ function pgrid(aset,pset,td){
     var cls="cal-day";
     if(past) cls+=" past";
     else if(appr) cls+=" approved";
-    else if(pend) cls+=" pending";
+    else if(pend) cls+=" approved";
     else cls+=" available";
     if(tot) cls+=" today";
     var dot=(appr||pend)?"<div class=\"cal-dot\"></div>":"";
