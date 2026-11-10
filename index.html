@@ -163,11 +163,9 @@ input, select, textarea { font-family: inherit; }
 </div>
 <script>
 
-var BIN_ID  = "6a297c6af5f4af5e29d8cd5a";
-var API_KEY = "$2a$10$vJeEQcrydtu9p5nXWxLwZeuho7633A2Qchf9Fzi9jRFv9tWbS4yDG";
-var API_URL = "https://api.jsonbin.io/v3/b/" + BIN_ID;
-var AK = "avira_admin";
-var AP = "2202";
+// Endereço do "porteiro" no Google (Apps Script). Não é segredo.
+var API_URL = "https://script.google.com/macros/s/AKfycbxC3YlT4oVDOVg6I2n-jrZ1Qw1ANuCfs_XDDeyc9ehdCSd64nXUmCBRtjsd1lILmLdg/exec";
+var AK = "avira_admin_pw";
 
 var MN=["Janeiro","Fevereiro","Mar\u00e7o","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
 var DN=["Dom","Seg","Ter","Qua","Qui","Sex","S\u00e1b"];
@@ -176,8 +174,9 @@ var EI={"Anivers\u00e1rio":"&#127874;","Casamento":"&#128141;","Confraterniza\u0
 
 var _cache = null;
 
-function aa(){return localStorage.getItem(AK)==="1";}
-function sa(v){v?localStorage.setItem(AK,"1"):localStorage.removeItem(AK);}
+function gpw(){try{return sessionStorage.getItem(AK)||"";}catch(e){return "";}}
+function aa(){return !!gpw();}
+function sa(pw){try{pw?sessionStorage.setItem(AK,pw):sessionStorage.removeItem(AK);}catch(e){}}
 function pad(n){return String(n).padStart(2,"0");}
 function ts(){var t=new Date();return t.getFullYear()+"-"+pad(t.getMonth()+1)+"-"+pad(t.getDate());}
 function fd(d){var p=d.split("-");return p[2]+"/"+p[1]+"/"+p[0];}
@@ -197,28 +196,47 @@ function showLoading(elId){
   if(el) el.innerHTML="<div class=\"loading\"><span class=\"loading-dot\"></span><span class=\"loading-dot\"></span><span class=\"loading-dot\"></span></div>";
 }
 
-function loadBins(cb){
-  fetch(API_URL+"/latest",{headers:{"X-Master-Key":API_KEY,"X-Bin-Meta":false}})
+function api(action,data,cb){
+  var body=Object.assign({action:action},data||{});
+  if(action!=="calendar"&&action!=="submit") body.pw=gpw();
+  var ctl=("AbortController" in window)?new AbortController():null;
+  var t=setTimeout(function(){if(ctl)ctl.abort();},25000);
+  fetch(API_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(body),signal:ctl?ctl.signal:undefined})
     .then(function(r){return r.json();})
     .then(function(d){
-      var arr=Array.isArray(d.record)?d.record:(Array.isArray(d)?d:[]);
-      arr=arr.filter(function(b){return b&&b.id;});
-      _cache=arr;
-      cb(null,arr);
+      clearTimeout(t);
+      if(!d||!d.ok){
+        if(d&&d.error==="auth"&&action!=="login"){sa("");if(cv==="admin")renderLogin();}
+        cb((d&&d.error)||"erro",null);return;
+      }
+      cb(null,d.data);
     })
-    .catch(function(e){cb(e,[]);});
+    .catch(function(e){clearTimeout(t);cb(e||"erro",null);});
 }
 
-function saveBins(arr,cb){
-  _cache=arr;
-  fetch(API_URL,{
-    method:"PUT",
-    headers:{"Content-Type":"application/json","X-Master-Key":API_KEY},
-    body:JSON.stringify(arr)
-  })
-  .then(function(r){return r.json();})
-  .then(function(){if(cb)cb(null);})
-  .catch(function(e){if(cb)cb(e);});
+function showError(elId,retry){
+  var el=g(elId);
+  if(el) el.innerHTML="<div class=\"empty-state\"><p>N\u00e3o foi poss\u00edvel carregar agora.</p>"
+   +"<button class=\"btn btn-primary\" style=\"margin-top:14px\" onclick=\""+retry+"\">Tentar novamente</button></div>";
+}
+
+// Calendário público: só datas e situação
+function loadPublic(){
+  showLoading("view-public");
+  api("calendar",null,function(err,days){
+    if(err){showError("view-public","loadPublic()");return;}
+    renderPublic(days||[]);
+  });
+}
+
+// Admin: lista completa (exige senha)
+function loadBins(cb){
+  api("list",null,function(err,arr){
+    if(err){cb(err,_cache||[]);return;}
+    arr=(arr||[]).filter(function(b){return b&&b.id;});
+    _cache=arr;
+    cb(null,arr);
+  });
 }
 
 function buildConfirmMsg(b){
@@ -257,8 +275,7 @@ function showView(v){
 var py,pm;
 function initPublicView(){
   var t=new Date(); py=t.getFullYear(); pm=t.getMonth();
-  showLoading("view-public");
-  loadBins(function(err,bks){renderPublic(bks);});
+  loadPublic();
 }
 
 function renderPublic(bks){
@@ -311,8 +328,8 @@ function pgrid(aset,pset,td){
   return h;
 }
 
-function pubPrev(){if(pm===0){pm=11;py--;}else pm--;showLoading("view-public");loadBins(function(e,bks){renderPublic(bks);});}
-function pubNext(){if(pm===11){pm=0;py++;}else pm++;showLoading("view-public");loadBins(function(e,bks){renderPublic(bks);});}
+function pubPrev(){if(pm===0){pm=11;py--;}else pm--;loadPublic();}
+function pubNext(){if(pm===11){pm=0;py++;}else pm++;loadPublic();}
 
 function openPublicForm(dateStr){
   var oh=ET.map(function(t){return "<option>"+t+"</option>";}).join("");
@@ -357,7 +374,6 @@ function submitPublicForm(dateStr){
   var btn=g("psend-btn");
   if(btn){btn.textContent="Enviando...";btn.disabled=true;}
   var booking={
-    id:Date.now().toString(),
     date:dateStr,
     name:name,
     phone:phone,
@@ -367,16 +383,14 @@ function submitPublicForm(dateStr){
     guestCount:guests,
     startTime:start,
     endTime:end,
-    notes:notes,
-    status:"pending",
-    createdAt:new Date().toISOString()
+    notes:notes
   };
-  loadBins(function(err,bks){
-    bks.push(booking);
-    saveBins(bks,function(err2){
+  (function(){
+    api("submit",{booking:booking},function(err2){
       if(err2){
         var e=g("pform-error");
-        if(e) e.innerHTML="<div class=\"alert-error\">Erro ao enviar. Tente novamente.</div>";
+        var m=(typeof err2==="string"&&err2.indexOf("reservada")>=0)?err2:"Erro ao enviar. Tente novamente.";
+        if(e) e.innerHTML="<div class=\"alert-error\">"+esc(m)+"</div>";
         if(btn){btn.textContent="Enviar solicita\u00e7\u00e3o";btn.disabled=false;}
         return;
       }
@@ -397,7 +411,7 @@ function submitPublicForm(dateStr){
        +"<button class=\"btn btn-dark btn-full\" style=\"margin-top:8px\" onclick=\"closeModal();initPublicView()\">Fechar</button>"
        +"</div>";
     });
-  });
+  })();
 }
 
 // ── ADMIN ──
@@ -407,7 +421,7 @@ function initAdminView(){
   if(!aa()){renderLogin();return;}
   var t=new Date(); ay=t.getFullYear(); am=t.getMonth();
   showLoading("view-admin");
-  loadBins(function(err,bks){renderAdmin(bks);});
+  loadBins(function(err,bks){if(err&&!aa())return;if(err){showError("view-admin","initAdminView()");return;}renderAdmin(bks);});
 }
 
 function renderAdmin(bks){
@@ -440,7 +454,7 @@ function renderAdmin(bks){
   rat(bks);
 }
 
-function refreshAdmin(){showLoading("view-admin");loadBins(function(e,bks){asel=null;renderAdmin(bks);});}
+function refreshAdmin(){asel=null;initAdminView();}
 function stab(t){atab=t;asel=null;rat(_cache||[]);}
 function rat(bks){var el=g("atc");if(!el)return;bks=bks||_cache||[];atab==="list"?ral(el,bks):rac(el,bks);}
 
@@ -499,7 +513,9 @@ function bdp(b){
 
 function doStatus(id,status){
   var bks=(_cache||[]).map(function(b){return b.id===id?Object.assign({},b,{status:status}):b;});
-  saveBins(bks,function(){
+  api("setStatus",{id:id,status:status},function(err){
+    if(err){if(aa())alert("N\u00e3o foi poss\u00edvel salvar. Tente novamente.");return;}
+    _cache=bks;
     if(asel&&asel.id===id) asel=Object.assign({},asel,{status:status});
     if(status==="approved"){
       var b=bks.find(function(x){return x.id===id;});
@@ -569,7 +585,14 @@ function csel(id){var b=(_cache||[]).find(function(x){return x.id===id;});if(!b)
 function selB(id){var b=(_cache||[]).find(function(x){return x.id===id;});asel=(asel&&asel.id===id)?null:b;ral(g("atc"),_cache||[]);}
 function desel(){asel=null;ral(g("atc"),_cache||[]);}
 function sf(f){af=f;asel=null;ral(g("atc"),_cache||[]);}
-function delB(id){var bks=(_cache||[]).filter(function(b){return b.id!==id;});saveBins(bks,function(){asel=null;renderAdmin(bks);});}
+function delB(id){
+  if(!confirm("Excluir esta reserva? N\u00e3o d\u00e1 para desfazer."))return;
+  var bks=(_cache||[]).filter(function(b){return b.id!==id;});
+  api("delete",{id:id},function(err){
+    if(err){if(aa())alert("N\u00e3o foi poss\u00edvel excluir. Tente novamente.");return;}
+    _cache=bks;asel=null;renderAdmin(bks);
+  });
+}
 
 function openNewBooking(){
   var oh=ET.map(function(t){return "<option>"+t+"</option>";}).join("");
@@ -617,20 +640,20 @@ function saveNewBooking(){
   var btn=g("nsave-btn");
   if(btn){btn.textContent="Salvando...";btn.disabled=true;}
   var status=g("nstatus").value;
-  var booking={id:Date.now().toString(),date:date,name:name,phone:phone,
+  var booking={date:date,name:name,phone:phone,
     email:g("nemail").value.trim(),eventType:g("ntype").value,eventName:evname,
     guestCount:g("nguests").value||"?",startTime:g("nstart").value,
     endTime:g("nend").value,notes:g("nnotes").value.trim(),
-    status:status,createdAt:new Date().toISOString()};
-  var bks=(_cache||[]).slice();bks.push(booking);
-  saveBins(bks,function(err){
+    status:status};
+  api("create",{booking:booking},function(err,saved){
     if(err){
       var e=g("nsave-error");if(e)e.innerHTML="<div class=\"alert-error\">Erro ao salvar.</div>";
       if(btn){btn.textContent="Salvar";btn.disabled=false;}
       return;
     }
     closeModal();
-    if(status==="approved"){waConfirmModal(booking);}else{renderAdmin(bks);}
+    var bks=(_cache||[]).slice();bks.push(saved||booking);_cache=bks;
+    if(status==="approved"){renderAdmin(bks);waConfirmModal(saved||booking);}else{renderAdmin(bks);}
   });
 }
 
@@ -645,15 +668,21 @@ function renderLogin(){
    +"<button class=\"btn btn-dark btn-full\" onclick=\"doLogin()\">Entrar</button>"
    +"</div></div>";
 }
-function doLogin(){var pw=g("pwi")?g("pwi").value:"";if(pw===AP){sa(true);initAdminView();}else{var e=g("pwe");if(e)e.textContent="Senha incorreta.";}}
-function adminLogout(){sa(false);renderLogin();}
+function doLogin(){
+  var pw=g("pwi")?g("pwi").value:"";
+  var e=g("pwe");if(e)e.textContent="Verificando...";
+  sa(pw);
+  api("login",null,function(err){
+    if(err){sa("");if(e)e.textContent=(err==="auth")?"Senha incorreta.":"Sem conex\u00e3o. Tente novamente.";return;}
+    initAdminView();
+  });
+}
+function adminLogout(){sa("");_cache=null;renderLogin();}
 function closeModal(){g("modal").style.display="none";}
 function closeModalOutside(e){if(e.target.id==="modal")closeModal();}
 
 // INIT
-sa(false);
-showLoading("view-public");
-loadBins(function(err,bks){renderPublic(bks);});
+initPublicView();
 
 </script>
 </body>
